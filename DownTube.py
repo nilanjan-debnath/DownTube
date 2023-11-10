@@ -45,6 +45,10 @@ def ytplaylist(link):
     playlist = Playlist(link)
     progress_label.config(text = playlist.title+'\nVideo Count:  '+str(len(playlist.video_urls)))
     i = 0
+    playlist_name = playlist.title
+    characters_to_replace = r'\/:*?"<>|'
+    for char in characters_to_replace:
+        playlist_name = playlist_name.replace(char, ' ')
     for url in playlist.video_urls:
         i+=1
         video = YouTube(url)
@@ -56,7 +60,7 @@ def ytplaylist(link):
         elif dropdown_var.get() == "144p":
             video = video.streams.filter(type='video',progressive=True, res="144p").first()
         try:
-            video.download(loc+"\Video/"+playlist.title)
+            video.download(loc+"\Video/"+playlist_name)
             progress_label.config(text =playlist.title+' : Playlist\n'+str(i)+': '+video.title+'\nCompleted')
         except:
             progress_label.config(text = "Video may not be downloaded, try again!")
@@ -66,16 +70,20 @@ def ytplaylistaudio(link):
     playlist = Playlist(link)
     progress_label.config(text = playlist.title+'\nAudio Count:  '+str(len(playlist.video_urls)))
     i = 0
+    playlist_name = playlist.title
+    characters_to_replace = r'\/:*?"<>|'
+    for char in characters_to_replace:
+        playlist_name = playlist_name.replace(char, ' ')
     for url in playlist.video_urls:
         i += 1
         audio = YouTube(url)
         progress_label.config(text ='Playlist: '+ playlist.title+'\n'+str(i)+': '+audio.title+'\nAudio Downloading....')
         try:
-            file = audio.streams.filter(type='audio').order_by('abr').desc().first().download(loc+"\Audio/"+playlist.title)
+            file = audio.streams.filter(type='audio').order_by('abr').desc().first().download(loc+"\Audio/"+playlist_name)
             base, ext = os.path.splitext(file) 
             new_file = base + '.mp3'
             os.rename(file, new_file)
-            progress_label.config(text =playlist.title+' : Playslist\n'+str(i)+ audio.title+'\nCompleted')
+            progress_label.config(text =playlist.title+' : Playslist\n'+str(i)+': '+audio.title+'\nCompleted')
         except:
             progress_label.config(text = "Audio may not be downloaded, try again!")
     progress_label.config(text ="Download is completed successfully")
