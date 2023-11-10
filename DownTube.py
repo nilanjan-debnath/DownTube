@@ -1,4 +1,5 @@
 import os
+import sys
 import threading
 import subprocess
 from pathlib import Path
@@ -82,10 +83,13 @@ def ytplaylistaudio(link):
 # Create the main window
 root = tk.Tk()
 root.title("DownTube")
-root.iconbitmap(r'D:\Code\YTdownload\test\DownTubeW.ico')
 root.geometry('600x400')
 root.minsize(500,300)
 root.maxsize(700, 500)
+
+current_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+icon_path = os.path.join(current_dir, 'downB.ico')
+root.iconbitmap(icon_path)
 
 def download():
     progress_label.config(text="Loading....")
@@ -153,4 +157,4 @@ progress_label.pack(pady=20, anchor='center')
 root.mainloop()
 
 # Compiler Command
-# pyinstaller --onefile --windowed --add-data "D:\Code\YTdownload\test\DownTubeW.ico;." --icon="D:\Code\YTdownload\test\DownTube.ico" DownTube.py
+# pyinstaller --onefile --windowed --add-data "downB.ico;." --icon="downW.ico" DownTube.py
