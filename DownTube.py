@@ -90,7 +90,7 @@ def ytplaylistaudio(link):
 
 # Create the main window
 root = tk.Tk()
-root.title("DownTube")
+root.title("DownTube v0.1.2")
 root.geometry('600x400')
 root.minsize(500,300)
 root.maxsize(700, 500)
@@ -165,4 +165,4 @@ progress_label.pack(pady=20, anchor='center')
 root.mainloop()
 
 # Compiler Command
-# pyinstaller --onefile --windowed --add-data "downB.ico;." --icon="downW.ico" DownTube.py
+# pyinstaller --onefile --windowed --add-data "downB.ico;." --icon="downW.ico" --name="DownTube v0.1.2" DownTube.py
