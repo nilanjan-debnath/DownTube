@@ -1,5 +1,6 @@
 import os
 import sys
+import eyed3
 import threading
 import subprocess
 from pathlib import Path
@@ -37,6 +38,9 @@ def ytaudio(link):
         base, ext = os.path.splitext(file) 
         new_file = base + '.mp3'
         os.rename(file, new_file)
+        audiofile = eyed3.load(loc+"\Audio/"+new_file)
+        audiofile.tag.artist = audio.author
+        audiofile.tag.save()
         progress_label.config(text ="Audio: "+audio.title+"\nDownlad Completed!")
     except:
         progress_label.config(text = "Audio may not be downloaded, try again!")
@@ -83,6 +87,11 @@ def ytplaylistaudio(link):
             base, ext = os.path.splitext(file) 
             new_file = base + '.mp3'
             os.rename(file, new_file)
+            audiofile = eyed3.load(loc+"\Audio/"+playlist_name+new_file)
+            audiofile.tag.artist = audio.author
+            audiofile.tag.album = playlist_name
+            audiofile.tag.album_artist = playlist.author
+            audiofile.tag.save()
             progress_label.config(text =playlist.title+' : Playslist\n'+str(i)+': '+audio.title+'\nCompleted')
         except:
             progress_label.config(text = "Audio may not be downloaded, try again!")
