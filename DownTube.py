@@ -2,7 +2,7 @@ import os
 import sys
 import requests
 import threading
-import webbrowser
+# import webbrowser
 import subprocess
 from PIL import Image
 from pathlib import Path
@@ -278,7 +278,9 @@ class App(ctk.CTk):
         super().__init__()
         self.geometry("854x480")
         self.title('DownTube')
-        self.iconbitmap('downW.ico')
+        current_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+        icon_path = os.path.join(current_dir, 'downB.ico')
+        self.iconbitmap(icon_path)
         
         self.main = mainFrame(master=self, width=834, height=460)
         self.main.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")

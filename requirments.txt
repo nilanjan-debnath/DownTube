@@ -1,3 +1,4 @@
-pytube
-pillow
-requests
+customtkinter==5.2.2
+pytube==15.0.0
+pillow==10.3.0
+request==2.32.3
