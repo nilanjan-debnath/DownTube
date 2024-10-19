@@ -1,0 +1,5 @@
+customtkinter==5.2.2
+pillow==11.0.0
+pytubefix==8.1.1
+requests==2.32.3
+moviepy==1.0.3

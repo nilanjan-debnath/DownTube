@@ -7,7 +7,8 @@ import subprocess
 from PIL import Image
 from pathlib import Path
 import customtkinter as ctk
-from pytube import YouTube, Playlist, request
+from pytubefix import YouTube, Playlist, request
+from moviepy.editor import VideoFileClip, AudioFileClip
 
 loc = str(Path.home() / "Downloads")
 loc = loc + '\DownTube'
@@ -46,7 +47,11 @@ def update(yt, url):
     image_label.configure(image=thumbnailImg)
     # image_label.bind("<Button-1>", lambda e: callback(url))
     global ytTitleLable
-    ytTitleLable.configure(text=yt.title)
+    if len(yt.title) > 70:
+        t = yt.title[0:70]+"..."
+        ytTitleLable.configure(text=t)
+    else:
+        ytTitleLable.configure(text=yt.title)
 
 def complete(size):
     global downloadedLabel
@@ -56,38 +61,79 @@ def complete(size):
     global percentage
     percentage.configure(text="100%")
 
+def collectVideo(yt, quality, playlist_name):
+    global downloadedLabel
+    global errorLabel
+    global statusLabel
+    statusLabel.configure(text="Collecting Video file...")
+
+    video = yt.streams.filter(mime_type="video/mp4", res=quality).first()
+    if video == None:
+        if playlist_name==None:
+            errorLabel.configure(text=f"{quality} isn't available, select different resolution")
+            return
+        else:
+            quality_list = ["1080p", "720p", "480p", "360p", "240p", "144p"]
+            errorLabel.configure(text=f"{quality} isn't available, tying different resolution")
+            for qlt in quality_list:
+                video = yt.streams.filter(mime_type="video/mp4", res=qlt).first()
+                if video != None:
+                    break
+            if video == None:
+                errorLabel.configure(text=f"Unable to download this video ❗❗")
+                return
+        
+    
+    downloadedLabel.configure(text=str(0.00)+"/"+str('%.2f'%video.filesize_mb)+" MB")
+    vid = video.download(loc+"\Tmp\Video/")
+    complete('%.2f'%video.filesize_mb)
+    return vid
+
+
+def collectAudio(yt):
+    global downloadedLabel
+    global statusLabel
+    statusLabel.configure(text="Collecting Audio file...")
+
+    audio = yt.streams.filter(mime_type="audio/mp4", abr="128kbps").first()
+    if audio == None:
+        audio = yt.streams.filter(type="audio").desc().first()
+
+    downloadedLabel.configure(text=str(0.00)+"/"+str('%.2f'%audio.filesize_mb)+" MB")
+    aud = audio.download(loc+"\Tmp\Audio/")
+    complete('%.2f'%audio.filesize_mb)
+    return aud
+
 def downloadVideo(url, quality, playlist_name=None, error=False):
-    global titleLabel
     yt = YouTube(url, on_progress_callback=progressUpdate)
     update(yt, url)
-    if quality == "720p":
-        video = yt.streams.filter(type='video',progressive=True, res="720p").first()
-    else:
-        video = yt.streams.filter(type='video',progressive=True, res="360p").first()
+    video = collectVideo(yt, quality, playlist_name)
+    if video==None:
+        return
+    audio = collectAudio(yt)
 
+    global statusLabel
+    statusLabel.configure(text="Processing Video file...")
     try:
-        global downloadedLabel
-        downloadedLabel.configure(text=str(0.00)+"/"+str('%.2f'%video.filesize_mb)+" MB")
-        if playlist_name==None:
-            video.download(loc+"\Video/")
-        else:
-            video.download(loc+"\Video/"+playlist_name)
-        complete('%.2f'%video.filesize_mb)
+        clip = VideoFileClip(video) 
+        audio_clip = AudioFileClip(audio)
+        video_clip = clip.set_audio(audio_clip)
+        output_file_name = os.path.basename(video)
 
+        output_directory = os.path.join(loc, "Video")
+        if playlist_name!=None:
+            output_directory = os.path.join(output_directory, playlist_name)
+
+        output_file_path = os.path.join(output_directory, output_file_name)
+        video_clip.write_videofile(output_file_path, codec="libx264", audio_codec="aac")
+        statusLabel.configure(text="Video downloaded ✅")
+        os.remove(video)
+        os.remove(audio)
     except Exception as e: 
         print(e)
-        global errorLabel
-        errorLabel.configure(text=f"{quality} isn't available")
-        if not error:
-            if quality == "720p":
-                downloadVideo(url, "360p", playlist_name, True)
-            else:
-                downloadVideo(url, "360p", playlist_name, True)
-        else:
-            print(f'{yt.title} is not downloadable.')
+
 
 def downloadVideoPlaylist(url, quality):
-    global titleLabel
     playlist = Playlist(url)
     i = 0
     playlist_name = playlist.title
@@ -100,27 +146,27 @@ def downloadVideoPlaylist(url, quality):
       
 
 def downloadAudio(url, playlist_name=None):
-    global titleLabel
     yt = YouTube(url, on_progress_callback=progressUpdate)
     update(yt, url)
-    audio = yt.streams.filter(type='audio', abr="128kbps").first()
+    audio = collectAudio(yt)
+    global statusLabel
+    statusLabel.configure(text="Processing Audio file...")
     try:
-        global downloadedLabel
-        downloadedLabel.configure(text=str(0.00)+"/"+str('%.2f'%audio.filesize_mb)+" MB")
-        if playlist_name==None:
-            file = audio.download(loc+"\Audio/")
-        else:
-            file = audio.download(loc+"\Audio/"+playlist_name)
-        complete('%.2f'%audio.filesize_mb)
-        base, ext = os.path.splitext(file) 
-        new_file = base + '.mp3'
-        os.rename(file, new_file)
+        audio_clip = AudioFileClip(audio)
+        output_file_name = os.path.basename(audio).replace('.mp4', '.mp3')
+        output_directory = os.path.join(loc, "Audio")
+        if playlist_name!=None:
+            output_directory = os.path.join(output_directory, playlist_name)
+
+        output_file_path = os.path.join(output_directory, output_file_name)
+        audio_clip.write_audiofile(output_file_path)
+        statusLabel.configure(text="Audio Downloaded ✅")
+        os.remove(audio)
     except Exception as e:
         print(e)
     
 
 def downloadAudioPlaylist(url):
-    global titleLabel
     playlist = Playlist(url)
     i = 0
     playlist_name = playlist.title
@@ -174,15 +220,15 @@ class downloadDetails(ctk.CTkFrame):
 
         global image_label
         image_label = ctk.CTkLabel(self, image=thumbnailImg, text="", corner_radius=25)
-        image_label.grid(row=1, column=0, rowspan=3, columnspan=2, padx=10, pady=10, sticky="we")
+        image_label.grid(row=1, column=0, rowspan=5, columnspan=2, padx=10, pady=10, sticky="we")
 
         global ytTitleLable
         ytTitleLable = ctk.CTkLabel(self, text=yt.title, text_color="White", bg_color="transparent", font=font2)
-        ytTitleLable.grid(row=1, column=2, columnspan=5, padx=5, pady=5, sticky="w")
+        ytTitleLable.grid(row=1, rowspan=2, column=2, columnspan=5, padx=5, pady=5, sticky="w")
         
         global errorLabel
-        errorLabel = ctk.CTkLabel(self, text="")
-        errorLabel.grid(row=2, column=2, columnspan=3, sticky="w")
+        errorLabel = ctk.CTkLabel(self, text="", text_color="red")
+        errorLabel.grid(row=3, column=2, columnspan=3, sticky="w")
 
         # def cancelDownload():
         #     global downlaodThread
@@ -192,18 +238,22 @@ class downloadDetails(ctk.CTkFrame):
         # cancelBtn = ctk.CTkButton(self, text="Cancel Downloading", command=cancelDownload)
         # cancelBtn.grid(row=2, column=6, sticky="w")
 
+        global statusLabel
+        statusLabel = ctk.CTkLabel(self, text="current status....")
+        statusLabel.grid(row=4, column=2, columnspan=3, sticky="w")
+
         global downloadedLabel
         downloadedLabel = ctk.CTkLabel(self, text="0.00/00.0 MB")
-        downloadedLabel.grid(row=3, column=2, sticky="e")
+        downloadedLabel.grid(row=5, column=2, sticky="e")
 
         global progress
         progress = ctk.DoubleVar(value=0.00)
         progressbar = ctk.CTkProgressBar(self, orientation="horizontal", mode="determinate", variable=progress)
-        progressbar.grid(row=3, column=3, columnspan=2, padx=10, sticky="ew")
+        progressbar.grid(row=5, column=3, columnspan=2, padx=10, sticky="ew")
 
         global percentage
         percentage = ctk.CTkLabel(self, text="0%")
-        percentage.grid(row=3, column=6, sticky="w")
+        percentage.grid(row=5, column=6, sticky="w")
 
 
 class mainFrame(ctk.CTkFrame):
@@ -242,8 +292,8 @@ class mainFrame(ctk.CTkFrame):
         folderBtn = ctk.CTkButton(self, height=30, text="Folder", command=open_folder_threading)
         folderBtn.grid(row=1, column=6, padx=10, sticky="ew")
 
-        qualityVar = ctk.StringVar(value="720p")
-        qualityBtn = ctk.CTkSegmentedButton(self, values=["720p", "360p"], variable=qualityVar)
+        qualityVar = ctk.StringVar(value="1080p")
+        qualityBtn = ctk.CTkOptionMenu(self, values=["1080p", "720p", "480p", "360p", "240p", "144p"], variable=qualityVar)
         qualityBtn.grid(row=2, column=0, columnspan=4, padx=10, pady=30, sticky="we")
 
         def switchType():
